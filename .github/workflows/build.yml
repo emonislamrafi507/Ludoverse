@@ -25,6 +25,7 @@ jobs:
           cp lib/main.dart /tmp/main.dart
           flutter create --platforms=android --project-name ludoverse .
           cp /tmp/main.dart lib/main.dart
+          flutter pub add audioplayers
           flutter build apk --release
 
       - uses: actions/upload-artifact@v4
