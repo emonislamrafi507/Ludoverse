@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 
 void main() => runApp(const LudoApp());
 
-const kRed = Color(0xFFE53935);
-const kGreen = Color(0xFF43A047);
-const kYellow = Color(0xFFFDD835);
-const kBlue = Color(0xFF1E88E5);
+const kRed = Color(0xFFE0533A);
+const kGreen = Color(0xFF5CC460);
+const kYellow = Color(0xFFF2C744);
+const kBlue = Color(0xFF3E8EF7);
 const kColors = [kRed, kGreen, kYellow, kBlue];
 const kNames = ['Red', 'Green', 'Yellow', 'Blue'];
 
@@ -182,6 +182,14 @@ class LudoApp extends StatelessWidget {
   }
 }
 
+const _bgDecoration = BoxDecoration(
+  gradient: RadialGradient(
+    center: Alignment(0, -0.3),
+    radius: 1.1,
+    colors: [Color(0xFF5A2A78), Color(0xFF1E0A2E)],
+  ),
+);
+
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
 
@@ -200,8 +208,15 @@ class MenuScreen extends StatelessWidget {
         width: 260,
         height: 54,
         child: FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFF2C744),
+            foregroundColor: Colors.black87,
+          ),
           onPressed: () => _start(context, p, ai),
-          child: Text(text, style: const TextStyle(fontSize: 18)),
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -210,21 +225,29 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E6),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Ludoverse',
-              style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 30),
-            _btn(context, 'Play vs Computer', [0, 2], {2}),
-            _btn(context, '2 Players', [0, 2], {}),
-            _btn(context, '3 Players', [0, 1, 2], {}),
-            _btn(context, '4 Players', [0, 1, 2, 3], {}),
-          ],
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: _bgDecoration,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Ludoverse',
+                style: TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 30),
+              _btn(context, 'Play vs Computer', [0, 2], {2}),
+              _btn(context, '2 Players', [0, 2], {}),
+              _btn(context, '3 Players', [0, 1, 2], {}),
+              _btn(context, '4 Players', [0, 1, 2, 3], {}),
+            ],
+          ),
         ),
       ),
     );
@@ -234,7 +257,15 @@ class MenuScreen extends StatelessWidget {
 class DiceFace extends StatelessWidget {
   final int value;
   final Color color;
-  const DiceFace({super.key, required this.value, required this.color});
+  final double size;
+  final bool glow;
+  const DiceFace({
+    super.key,
+    required this.value,
+    required this.color,
+    required this.size,
+    required this.glow,
+  });
 
   static const Map<int, List<int>> patterns = {
     1: [4],
@@ -248,23 +279,33 @@ class DiceFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dots = patterns[value] ?? const <int>[];
+    final dot = size * 0.17;
     return Container(
-      width: 110,
-      height: 110,
-      padding: const EdgeInsets.all(12),
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * 0.1),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color, width: 6),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+        borderRadius: BorderRadius.circular(size * 0.2),
+        border: Border.all(color: color, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: glow ? color.withOpacity(0.8) : Colors.black45,
+            blurRadius: glow ? 16 : 6,
+            spreadRadius: glow ? 2 : 0,
+            offset: glow ? Offset.zero : const Offset(0, 3),
+          ),
         ],
       ),
       child: value == 0
-          ? const Center(
+          ? Center(
               child: Text(
-                'ROLL',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                glow ? 'TAP' : '',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             )
           : Column(
@@ -278,8 +319,8 @@ class DiceFace extends StatelessWidget {
                             child: Center(
                               child: dots.contains(r * 3 + c)
                                   ? Container(
-                                      width: 20,
-                                      height: 20,
+                                      width: dot,
+                                      height: dot,
                                       decoration: const BoxDecoration(
                                         color: Colors.black87,
                                         shape: BoxShape.circle,
@@ -297,6 +338,82 @@ class DiceFace extends StatelessWidget {
   }
 }
 
+class PlayerPanel extends StatelessWidget {
+  final int p;
+  final String label;
+  final bool isAi;
+  final bool active;
+  final bool leftSide;
+  final int value;
+  final VoidCallback onTap;
+
+  const PlayerPanel({
+    super.key,
+    required this.p,
+    required this.label,
+    required this.isAi,
+    required this.active,
+    required this.leftSide,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = kColors[p];
+    final avatar = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2B1240),
+            border: Border.all(color: color, width: active ? 4 : 3),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: color.withOpacity(0.7),
+                      blurRadius: 14,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [],
+          ),
+          child: Icon(
+            isAi ? Icons.smart_toy : Icons.person,
+            color: Colors.white70,
+            size: 30,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+    final dice = Opacity(
+      opacity: active ? 1 : 0.55,
+      child: GestureDetector(
+        onTap: onTap,
+        child: DiceFace(value: value, color: color, size: 60, glow: active),
+      ),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: leftSide
+          ? [avatar, const SizedBox(width: 10), dice]
+          : [dice, const SizedBox(width: 10), avatar],
+    );
+  }
+}
+
 class GameScreen extends StatefulWidget {
   final List<int> players;
   final Set<int> ai;
@@ -308,9 +425,9 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   final List<List<int>> pos = List.generate(4, (_) => List.filled(4, -1));
+  final List<int> diceVals = [0, 0, 0, 0];
   final Random rnd = Random();
   int turnIdx = 0;
-  int dice = 0;
   bool rolled = false;
   bool rolling = false;
   bool over = false;
@@ -318,6 +435,8 @@ class _GameScreenState extends State<GameScreen> {
 
   int get cur => widget.players[turnIdx];
   bool get curIsAi => widget.ai.contains(cur);
+  int get dice => diceVals[cur];
+  set dice(int v) => diceVals[cur] = v;
 
   @override
   void initState() {
@@ -329,7 +448,7 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted || over) return;
     setState(() {
       dice = 0;
-      msg = curIsAi ? 'Computer is playing...' : 'Tap the dice to roll';
+      msg = curIsAi ? 'Computer is playing...' : 'Tap your dice to roll';
     });
     if (curIsAi) {
       Future.delayed(const Duration(milliseconds: 800), _roll);
@@ -506,58 +625,125 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  Widget _panel(int p) {
+    if (!widget.players.contains(p)) return const SizedBox(height: 80);
+    final isAi = widget.ai.contains(p);
+    final label = isAi
+        ? 'Computer'
+        : (widget.ai.isNotEmpty ? 'You' : kNames[p]);
+    return PlayerPanel(
+      p: p,
+      label: label,
+      isAi: isAi,
+      active: p == cur && !over,
+      leftSide: p == 0 || p == 3,
+      value: diceVals[p],
+      onTap: () {
+        if (p == cur && !rolled && !rolling && !curIsAi && !over) _roll();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final color = kColors[cur];
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Text(
-              "${kNames[cur]}'s turn${curIsAi ? ' (Computer)' : ''}",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: color == kYellow ? Colors.amber.shade800 : color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(msg, style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: LayoutBuilder(
-                  builder: (ctx, cons) {
-                    final s = cons.maxWidth;
-                    return GestureDetector(
-                      onTapUp: (d) => _onTap(d.localPosition, s),
-                      child: CustomPaint(
-                        size: Size(s, s),
-                        painter: BoardPainter(
-                          pos: pos,
-                          players: widget.players,
-                          current: cur,
-                          movable: _movable(),
-                        ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: _bgDecoration,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _panel(0),
                       ),
-                    );
-                  },
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: _panel(1),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: () {
-                if (!rolled && !rolling && !curIsAi && !over) _roll();
-              },
-              child: DiceFace(value: dice, color: color),
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF9A6236), Color(0xFF5E3719)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: LayoutBuilder(
+                      builder: (ctx, cons) {
+                        final s = cons.maxWidth;
+                        return GestureDetector(
+                          onTapUp: (d) => _onTap(d.localPosition, s),
+                          child: CustomPaint(
+                            size: Size(s, s),
+                            painter: BoardPainter(
+                              pos: pos,
+                              players: widget.players,
+                              current: cur,
+                              movable: _movable(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _panel(3),
+                      ),
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: _panel(2),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "${kNames[cur]}'s turn  •  $msg",
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const Spacer(),
+            ],
+          ),
         ),
       ),
     );
@@ -577,49 +763,84 @@ class BoardPainter extends CustomPainter {
     required this.movable,
   });
 
-  void _drawToken(Canvas canvas, Offset center, double r, Color color) {
+  // 3D coin-style token
+  void _drawToken(Canvas canvas, Offset ctr, double r, Color color) {
+    final th = r * 0.3;
+    // ground shadow
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: ctr + Offset(0, r * 0.95),
+        width: r * 2.1,
+        height: r * 0.7,
+      ),
+      Paint()..color = Colors.black.withOpacity(0.35),
+    );
+    // side (thickness)
+    final side = Color.lerp(color, Colors.black, 0.5)!;
+    final sidePaint = Paint()..color = side;
+    canvas.drawCircle(ctr + Offset(0, th), r, sidePaint);
+    canvas.drawRect(
+      Rect.fromLTRB(ctr.dx - r, ctr.dy, ctr.dx + r, ctr.dy + th),
+      sidePaint,
+    );
+    // gold rim
+    final rimRect = Rect.fromCircle(center: ctr, radius: r);
     canvas.drawCircle(
-      center + Offset(r * 0.12, r * 0.22),
+      ctr,
       r,
-      Paint()..color = Colors.black.withOpacity(0.3),
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Color(0xFFD9B44A), Color(0xFF8A6A1E)],
+        ).createShader(rimRect),
     );
-    final rect = Rect.fromCircle(center: center, radius: r);
-    final body = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-0.35, -0.4),
-        radius: 1.0,
-        colors: [
-          Color.lerp(color, Colors.white, 0.6)!,
-          color,
-          Color.lerp(color, Colors.black, 0.4)!,
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(rect);
-    canvas.drawCircle(center, r, body);
+    // colored face
+    final faceR = r * 0.78;
     canvas.drawCircle(
-      center,
-      r,
+      ctr,
+      faceR,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.3, -0.4),
+          radius: 1.0,
+          colors: [
+            Color.lerp(color, Colors.white, 0.5)!,
+            color,
+            Color.lerp(color, Colors.black, 0.25)!,
+          ],
+        ).createShader(Rect.fromCircle(center: ctr, radius: faceR)),
+    );
+    // inner ring + center dot
+    canvas.drawCircle(
+      ctr,
+      r * 0.5,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = Colors.white,
+        ..strokeWidth = r * 0.12
+        ..color = Colors.white.withOpacity(0.85),
     );
     canvas.drawCircle(
-      center,
-      r + 1.2,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Colors.black87,
+      ctr,
+      r * 0.16,
+      Paint()..color = Colors.white.withOpacity(0.9),
     );
-    canvas.drawCircle(
-      center,
-      r * 0.45,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Colors.white.withOpacity(0.7),
-    );
+  }
+
+  void _drawStar(Canvas canvas, Offset ctr, double r, Paint paint) {
+    final path = Path();
+    for (int i = 0; i < 10; i++) {
+      final rad = i.isEven ? r : r * 0.45;
+      final a = -pi / 2 + i * pi / 5;
+      final pt = Offset(ctr.dx + rad * cos(a), ctr.dy + rad * sin(a));
+      if (i == 0) {
+        path.moveTo(pt.dx, pt.dy);
+      } else {
+        path.lineTo(pt.dx, pt.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
   }
 
   @override
@@ -630,7 +851,7 @@ class BoardPainter extends CustomPainter {
     final fill = Paint()..style = PaintingStyle.fill;
     final line = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.black54
+      ..color = Colors.black45
       ..strokeWidth = 1;
 
     canvas.drawRect(Offset.zero & size, fill..color = Colors.white);
@@ -640,9 +861,12 @@ class BoardPainter extends CustomPainter {
         Rect.fromLTWH(col * c, row * c, 6 * c, 6 * c),
         fill..color = color,
       );
-      canvas.drawRect(
-        Rect.fromLTWH((col + 1) * c, (row + 1) * c, 4 * c, 4 * c),
-        fill..color = Colors.white,
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH((col + 1) * c, (row + 1) * c, 4 * c, 4 * c),
+          Radius.circular(c * 0.4),
+        ),
+        fill..color = Color.lerp(color, Colors.black, 0.3)!,
       );
       for (final p in [
         [col + 2, row + 2],
@@ -652,8 +876,8 @@ class BoardPainter extends CustomPainter {
       ]) {
         canvas.drawCircle(
           Offset(p[0] * c, p[1] * c),
-          c * 0.48,
-          fill..color = color.withOpacity(0.3),
+          c * 0.55,
+          fill..color = Color.lerp(color, Colors.black, 0.45)!,
         );
       }
     }
@@ -685,13 +909,17 @@ class BoardPainter extends CustomPainter {
       lane(kColors[i], [kTrack[kStart[i]]]);
     }
 
+    // Safe star cells
     for (final g in kSafe) {
       if (g == 0 || g == 13 || g == 26 || g == 39) continue;
       final t = kTrack[g];
-      canvas.drawCircle(
+      canvas.drawRect(cell(t[0], t[1]), fill..color = const Color(0xFFC9C9C9));
+      canvas.drawRect(cell(t[0], t[1]), line);
+      _drawStar(
+        canvas,
         Offset((t[0] + 0.5) * c, (t[1] + 0.5) * c),
-        c * 0.18,
-        fill..color = Colors.black38,
+        c * 0.34,
+        fill..color = const Color(0xFF7A7A7A),
       );
     }
 
@@ -717,38 +945,52 @@ class BoardPainter extends CustomPainter {
 
     canvas.drawRect(Offset.zero & size, line..strokeWidth = 2);
 
-    // Tokens (current player's drawn last so they stay on top)
-    final order = [...players.where((p) => p != current), current];
+    // Tokens: draw top-to-bottom so lower tokens overlap upper ones;
+    // current player's tokens last so they stay on top.
+    final items = <List<dynamic>>[];
     final used = <String, int>{};
+    final order = [...players.where((p) => p != current), current];
     for (final p in order) {
       for (int t = 0; t < 4; t++) {
         final g = gridPos(p, t, pos[p][t]);
         final key = '${g.dx.toStringAsFixed(1)}_${g.dy.toStringAsFixed(1)}';
         final k = used[key] ?? 0;
         used[key] = k + 1;
-        final center = Offset(g.dx * c + k * c * 0.14, g.dy * c - k * c * 0.14);
-
-        final isMovable = p == current && movable.contains(t);
-        if (isMovable) {
-          canvas.drawCircle(
-            center,
-            c * 0.6,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 3.5
-              ..color = Colors.black,
-          );
-          canvas.drawCircle(
-            center,
-            c * 0.6,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.5
-              ..color = Colors.white,
-          );
-        }
-        _drawToken(canvas, center, c * 0.42, kColors[p]);
+        final center = Offset(g.dx * c + k * c * 0.16, g.dy * c - k * c * 0.16);
+        items.add([p, t, center]);
       }
+    }
+    items.sort((a, b) {
+      final pa = a[0] == current ? 1 : 0;
+      final pb = b[0] == current ? 1 : 0;
+      if (pa != pb) return pa - pb;
+      return (a[2] as Offset).dy.compareTo((b[2] as Offset).dy);
+    });
+
+    for (final it in items) {
+      final p = it[0] as int;
+      final t = it[1] as int;
+      final center = it[2] as Offset;
+      final isMovable = p == current && movable.contains(t);
+      if (isMovable) {
+        canvas.drawCircle(
+          center,
+          c * 0.62,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4
+            ..color = Colors.black,
+        );
+        canvas.drawCircle(
+          center,
+          c * 0.62,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = Colors.white,
+        );
+      }
+      _drawToken(canvas, center, c * 0.4, kColors[p]);
     }
   }
 
